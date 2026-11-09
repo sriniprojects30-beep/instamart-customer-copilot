@@ -662,8 +662,8 @@ class CopilotServer(BaseHTTPRequestHandler):
 def run_server(port=PORT):
     server = HTTPServer(("127.0.0.1", port), CopilotServer)
     print(f"\n{'='*70}")
-    print(f"🚀 Instamart Customer Intelligence & Support Copilot Web App Running!")
-    print(f"👉 Local URL: http://127.0.0.1:{port}")
+    print(f"Instamart Customer Intelligence & Support Copilot Web App Running!")
+    print(f"Local URL: http://127.0.0.1:{port}")
     print(f"{'='*70}\n")
     try:
         server.serve_forever()
