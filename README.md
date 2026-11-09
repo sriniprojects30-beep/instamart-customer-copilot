@@ -23,12 +23,12 @@ All language model interactions run offline and deterministically via the suppli
 
 ## Reproduce
 
-The entire repository is deterministic and fully reproducible. Follow the numbered shell commands below from a clean clone to set up the environment, regenerate the synthetic data, run all analytical pipelines, and verify all checkpoints:
+The entire repository is deterministic and fully reproducible. Follow the numbered shell commands below from a clean clone to set up the environment, regenerate the synthetic data, run all analytical pipelines in sequential order (01 to 05), and verify all checkpoints:
 
 ```bash
 # 1. Clone repository and navigate to root directory
-git clone https://github.com/<user>/<repo>.git
-cd <repo>
+git clone https://github.com/sriniprojects30-beep/instamart-customer-copilot.git
+cd instamart-customer-copilot
 
 # 2. Ensure git branch is main
 git branch -M main
@@ -51,23 +51,41 @@ pip install -r requirements.txt
 # 6. Generate deterministic raw synthetic data and policy texts
 python generate_data.py
 
-# 7. Execute Part A: Data cleaning, SQLite storage, SQL queries, and Pandas EDA
-python src/part_a.py
+# =====================================================================
+# ORDER-WISE PIPELINE EXECUTION (Steps 01 to 05)
+# =====================================================================
 
-# 8. Run Part A automated reference checkpoint validation
+# Step 1: Data Foundation (Clean, Store in SQLite, Analytical SQL Queries)
+python 01_data_foundation.py
+
+# Step 1 Checkpoint Validation:
 python validate.py
 
-# 9. Execute Part B: RFM segmentation, K-Means clustering, and Lapse model training
-python src/part_b.py
+# Step 2: Customer Intelligence (RFM Segmentation, K-Means & Random Forest Churn Model)
+python 02_customer_intelligence.py
 
-# 10. Execute Part C: Ticket triage, PII redaction, prompt comparison, budget demo, and routing
-python src/part_c.py
+# Step 3: Support Ticket Triage (PII Masking, Few-Shot LLM Triage & Segment Routing)
+python 03_support_triage.py
 
-# 11. Execute Part D: Policy document chunking, TF-IDF RAG, ReAct agent scenarios, and state recovery
-python src/part_d.py
+# Step 4: Policy Knowledge Assistant & Multi-Turn ReAct Refund Agent
+python 04_policy_refund_agent.py
 
-# Optional: Run the complete pipeline end-to-end in one command
+# Step 5: Unified One-Input Support Copilot (Omnibox CLI Verification)
+python 05_one_input_copilot.py --query "Customer C0082 profile and churn risk"
+
+# =====================================================================
+# AUTOMATED REPRODUCIBILITY & QA VERIFICATION
+# =====================================================================
+
+# Run the complete sequential pipeline end-to-end in one command (~21 seconds):
 python run_all.py
+
+# Run comprehensive QA and regression test suite (100% pass rate):
+python test_suite.py
+
+# Launch Full-Stack Web Application (Port 8000):
+python app.py
+# Open http://127.0.0.1:8000 in your browser for the Interactive Omnibox Copilot UI
 ```
 
 ---
@@ -574,9 +592,53 @@ However, customer support environments are dominated by dirty realities: missing
 
 ---
 
+## Step 5 — Unified One-Input Support Copilot (Omnibox & Web Dashboard)
+
+To eliminate operational fragmentation where support agents must navigate separate dashboards for customer details, ticket triage, policy lookups, and refund processing, we introduced the **Unified One-Input Support Copilot (Omnibox)** (`one_input_support.py` & `05_one_input_copilot.py`).
+
+### 1. Universal Disambiguation & Autonomous Routing
+A single search/input bar accepts freeform customer text, order queries, policy questions, or raw support tickets and automatically routes to the appropriate analytical subsystem:
+
+```
+                                  [ User Input / Omnibox ]
+                                             │
+                       ┌─────────────────────┼─────────────────────┐
+                       ▼                     ▼                     ▼
+               Customer ID / RFM       Policy Question       Order Refund Query
+               [ Customer 360 ]       [ TF-IDF RAG ]        [ ReAct Agent ]
+                       │                     │                     │
+                       └─────────────────────┼─────────────────────┘
+                                             ▼
+                              Privacy-Safe Ticket Triage
+                                 [ PII Guardrails ]
+                                             │
+                                             ▼
+                                 Segment-Aware Queue Routing
+```
+
+1. **Customer 360 Intelligence (`C\d{4}`)**:
+   - Queries matching customer ID pattern (e.g. `C0082`, `"Customer C0001 churn risk"`) fetch demographic metadata from `data/instamart.db`, cluster assignments from `customer_segments.csv`, and real-time lapse probabilities from `lapse_model.joblib`.
+2. **Autonomous ReAct Refund Agent (`ORD-\d{6}` or Refund Inquiries)**:
+   - When an order ID or refund claim is detected, the multi-turn ReAct agent executes `get_order`, `search_policy`, `calculate_refund`, and `issue_refund`, verifying financial conditions before disbursing funds.
+3. **Policy Knowledge Assistant (RAG)**:
+   - General inquiries (e.g. *"What is the refund window for dairy items?"*) are routed to the TF-IDF vector retrieval engine, returning grounded excerpts and answers.
+4. **Privacy-Safe Support Ticket Triage**:
+   - Freeform customer complaints are first scrubbed through regex PII filters (`[PHONE]`, `[EMAIL]`, `[ORDER_ID]`), classified via few-shot prompting, and routed to the correct operational queue (`premium_desk`, `security_team`, `human_review`, or `support_queue`).
+
+### 2. Full-Stack Web Application (`app.py`)
+A production-grade, zero-external-dependency web server built with Python's standard `http.server` provides an interactive dark-mode dashboard at `http://127.0.0.1:8000`:
+- **Omnibox Copilot Tab**: Universal search bar with instant one-click preset scenarios.
+- **1️⃣ Data Foundation Tab**: Executive KPIs, city performance breakdown, and order basket distribution.
+- **2️⃣ Customer Intelligence Tab**: Interactive customer RFM lookup and Top 10 VIP retention list.
+- **3️⃣ Support Triage Tab**: Real-time regex PII redaction and automated ticket classification.
+- **4️⃣ Policy Knowledge Tab**: Interactive TF-IDF policy question-answering with citation cards.
+- **5️⃣ Autonomous Agent Tab**: Live simulation of the ReAct reasoning loop with tool trace inspection and crash-recovery demo.
+
+---
+
 ## Limitations and Next Steps
 
 1. **Post-Hoc Whole-Window Segment Labels**: As documented in Part B, the `is_premium` flag assigned in `customer_segments.csv` and used to filter the top-10 retention list (`retention_list.csv`) was derived from the full 6-month RFM window (including September order data). While the lapse prediction model itself was engineered strictly without leakage using pre-cutoff data, the retention list is illustrative rather than a prospective holdout test. Future iterations should compute prospective RFM segments strictly as of the temporal cutoff date.
 2. **Dense Semantic Embeddings**: Part D utilizes TF-IDF vectorization for policy chunk retrieval. While achieving 100% retrieval accuracy on our synthetic domain test suite, production enterprise deployment would benefit from dense neural embeddings (e.g. OpenAI `text-embedding-3-small`, BGE-large, or Gemini Embeddings) combined with vector database indexes (e.g. PostgreSQL `pgvector`) to capture deep semantic synonyms and multilingual vernacular.
 3. **Distributed Message Queues**: The triage pipeline currently processes ticket queues synchronously in local memory. Real-world scaling across millions of daily orders requires a distributed message broker (e.g. Apache Kafka or RabbitMQ) with dead-letter queues and Redis-backed state stores for resilient multi-worker concurrency.
-4. **Human-in-the-Loop Supervisory Console**: The current copilot exports escalated tickets and budget overruns to CSV and JSONL ledgers. Building an interactive supervisory web interface (e.g. FastAPI + React) will enable customer care leads to review high-value refund requests (> INR 1000) and approve flagged cases with a single click.
+4. **Human-in-the-Loop Supervisory Console**: The interactive supervisory web console has been implemented in `app.py`, allowing support leads to review high-value refund requests, inspect customer lifetime value, and trace autonomous agent reasoning in real time.

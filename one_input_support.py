@@ -178,6 +178,7 @@ def handle_one_input(raw_input: str) -> dict:
             "redaction_summary": redaction_summary,
             "data": {
                 "order_id": oid,
+                "status": final_status,
                 "refund_status": final_status,
                 "refund_amount_inr": refund_amt,
                 "model_calls": agent_res["llm_calls"],
@@ -218,6 +219,8 @@ def handle_one_input(raw_input: str) -> dict:
         "data": {
             "category": cat,
             "validation_status": val_status,
+            "redacted_text": redacted_text,
+            "redaction_summary": redaction_summary,
             "raw_model_response": content
         }
     }

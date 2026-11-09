@@ -121,12 +121,12 @@ HTML_PAGE = """<!DOCTYPE html>
   </header>
 
   <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="showTab('tab-one-input')">🎯 One-Input Copilot</button>
-    <button class="tab-btn" onclick="showTab('tab-dashboard')">📊 Executive Overview</button>
-    <button class="tab-btn" onclick="showTab('tab-customers')">👥 Customer Intelligence</button>
-    <button class="tab-btn" onclick="showTab('tab-triage')">🛡️ Support Triage & Guardrails</button>
-    <button class="tab-btn" onclick="showTab('tab-rag')">📖 Policy RAG Assistant</button>
-    <button class="tab-btn" onclick="showTab('tab-agent')">🤖 ReAct Refund Agent</button>
+    <button class="tab-btn active" onclick="showTab('tab-one-input')">🎯 Omnibox Copilot</button>
+    <button class="tab-btn" onclick="showTab('tab-dashboard')">1️⃣ Data Foundation</button>
+    <button class="tab-btn" onclick="showTab('tab-customers')">2️⃣ Customer Intelligence</button>
+    <button class="tab-btn" onclick="showTab('tab-triage')">3️⃣ Support Triage</button>
+    <button class="tab-btn" onclick="showTab('tab-rag')">4️⃣ Policy Knowledge</button>
+    <button class="tab-btn" onclick="showTab('tab-agent')">5️⃣ Autonomous Agent</button>
   </nav>
 
   <div class="container">
@@ -161,7 +161,7 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- TAB 1: EXECUTIVE DASHBOARD -->
+    <!-- TAB 1: DATA FOUNDATION & EXECUTIVE DASHBOARD -->
     <div id="tab-dashboard" class="tab-content">
       <div class="kpi-grid">
         <div class="kpi-card">
@@ -187,7 +187,7 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
 
       <div class="card">
-        <h2>City Performance & Basket Distribution</h2>
+        <h2>1️⃣ Step 1: City Performance & Basket Distribution</h2>
         <p class="desc">Analytical aggregations from golden SQLite store (<code>data/instamart.db</code>).</p>
         <table id="city-table">
           <thead>
@@ -214,7 +214,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- TAB 2: CUSTOMER INTELLIGENCE -->
     <div id="tab-customers" class="tab-content">
       <div class="card">
-        <h2>Customer Lookup & RFM Profile</h2>
+        <h2>2️⃣ Step 2: Customer Lookup & RFM Profile</h2>
         <p class="desc">Inspect customer segment cluster, lifetime value, and ML churn prediction score.</p>
         <div style="display: flex; gap: 12px; max-width: 500px; margin-bottom: 20px;">
           <input type="text" id="cust-id-input" placeholder="Enter Customer ID (e.g. C0001, C0082, C0862)" value="C0082">
@@ -227,7 +227,7 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
 
       <div class="card">
-        <h2>Top 10 High-Risk Premium Retention Targets (Outputs/retention_list.csv)</h2>
+        <h2>Top 10 High-Risk Premium Retention Targets (outputs/retention_list.csv)</h2>
         <p class="desc">Prioritised VIP accounts from the test set ranked by model lapse probability.</p>
         <table>
           <thead>
@@ -248,7 +248,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- TAB 3: SUPPORT TRIAGE -->
     <div id="tab-triage" class="tab-content">
       <div class="card">
-        <h2>Privacy-Safe Support Ticket Triage</h2>
+        <h2>3️⃣ Step 3: Privacy-Safe Support Ticket Triage</h2>
         <p class="desc">Enter raw ticket text with sensitive personal info to verify regex redaction and automated routing.</p>
         <div class="form-group">
           <label>Sample Pre-sets:</label>
@@ -278,7 +278,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- TAB 4: POLICY RAG -->
     <div id="tab-rag" class="tab-content">
       <div class="card">
-        <h2>Policy Knowledge Assistant (TF-IDF Retrieval Augmented Generation)</h2>
+        <h2>4️⃣ Step 4: Policy Knowledge Assistant (TF-IDF RAG)</h2>
         <p class="desc">Asks questions against the five store policy documents with grounding verification.</p>
         <div class="form-group">
           <label>Preset Question Library:</label>
@@ -304,7 +304,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- TAB 5: REACT AGENT -->
     <div id="tab-agent" class="tab-content">
       <div class="card">
-        <h2>Autonomous ReAct Refund Agent Simulator</h2>
+        <h2>5️⃣ Step 5: Autonomous ReAct Refund Agent Simulator</h2>
         <p class="desc">Simulate multi-turn ReAct reasoning (order DB lookup, policy retrieval, refund calculation, and ledger logging).</p>
         <div class="form-group">
           <label>Select Benchmark Scenario:</label>

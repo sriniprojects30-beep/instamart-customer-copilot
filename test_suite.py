@@ -1,6 +1,11 @@
 """
 test_suite.py -- Comprehensive QA and Regression Test Suite for Instamart Copilot.
-Tests Part A, Part B, Part C, and Part D end-to-end against all brief specifications.
+Validates all 5 steps in order:
+  Step 1: Data Foundation (Clean, Store & SQL Analytics)
+  Step 2: Customer Intelligence (Segments & Lapse Prediction)
+  Step 3: Support Ticket Triage (PII Guardrails & Routing)
+  Step 4: Policy Knowledge Assistant & ReAct Refund Agent
+  Step 5: Unified One-Input Copilot Omnibox
 """
 import os
 import sys
@@ -12,9 +17,10 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import mock_llm
 from src import part_a, part_b, part_c, part_d
+import one_input_support
 
-def test_part_a():
-    print("[TEST] Running Part A Validation...")
+def test_step_1_data_foundation():
+    print("[TEST] Step 1: Data Foundation Validation...")
     audit, cust_raw, prod_raw, ord_raw, tick_raw = part_a.audit_raw_data()
     assert audit["raw_orders_rows"] == 13084
     assert audit["exact_duplicates"] == 119
@@ -60,10 +66,10 @@ def test_part_a():
     assert (sql_results["Q6"]["spend_rank"] != sql_results["Q6"]["spend_row_number"]).sum() == 8
     assert len(sql_results["Q7"]) == 183
     assert round(sql_results["Q7"]["cumulative_revenue"].iloc[-1], 2) == 2998668.80
-    print("  -> Part A PASSED successfully.")
+    print("  -> Step 1 PASSED successfully.")
 
-def test_part_b():
-    print("[TEST] Running Part B Validation...")
+def test_step_2_customer_intelligence():
+    print("[TEST] Step 2: Customer Intelligence Validation...")
     seg_df = pd.read_csv("outputs/customer_segments.csv")
     assert len(seg_df) == 1175
     assert seg_df["is_premium"].sum() == 138
@@ -77,10 +83,10 @@ def test_part_b():
     ret_list = pd.read_csv("outputs/retention_list.csv")
     assert len(ret_list) == 10
     assert list(ret_list.columns) == ["customer_id", "lapse_probability", "actually_lapsed"]
-    print("  -> Part B PASSED successfully.")
+    print("  -> Step 2 PASSED successfully.")
 
-def test_part_c():
-    print("[TEST] Running Part C Validation...")
+def test_step_3_support_triage():
+    print("[TEST] Step 3: Support Ticket Triage Validation...")
     triage_results = pd.read_csv("outputs/triage_results.csv")
     assert len(triage_results) == 164
     assert set(triage_results["route"].unique()) == {"support_queue", "security_team", "human_review", "premium_desk"}
@@ -89,10 +95,10 @@ def test_part_c():
     budget_demo = pd.read_csv("outputs/triage_budget_demo.csv")
     assert len(budget_demo) == 164
     assert (budget_demo["status"] == "budget_exhausted").sum() > 0
-    print("  -> Part C PASSED successfully.")
+    print("  -> Step 3 PASSED successfully.")
 
-def test_part_d():
-    print("[TEST] Running Part D Validation...")
+def test_step_4_policy_refund_agent():
+    print("[TEST] Step 4: Policy Assistant & Refund Agent Validation...")
     qa_eval = part_d.evaluate_policy_qa()
     assert qa_eval["overlap_10"]["doc_hits"] == 12
     assert qa_eval["overlap_10"]["fact_hits"] == 12
@@ -126,18 +132,47 @@ def test_part_d():
     resumed = part_d.resume_agent(crash_id)
     assert resumed["status"] == "REFUND"
     assert resumed["tools_executed"] == ["get_order", "search_policy", "calculate_refund", "issue_refund"]
-    print("  -> Part D PASSED successfully.")
+    print("  -> Step 4 PASSED successfully.")
+
+def test_step_5_one_input_copilot():
+    print("[TEST] Step 5: Unified One-Input Copilot Validation...")
+    # Test 1: Customer Intelligence Disambiguation
+    res_cust = one_input_support.handle_one_input("C0082")
+    assert res_cust["intent"] == "CUSTOMER_INTELLIGENCE"
+    assert "data" in res_cust
+    assert res_cust["data"]["customer_id"] == "C0082"
+
+    # Test 2: Policy Assistant RAG Disambiguation
+    res_policy = one_input_support.handle_one_input("What is the refund window for dairy items?")
+    assert res_policy["intent"] == "POLICY_ASSISTANT_RAG"
+    assert len(res_policy["data"]["retrieved_sources"]) > 0
+
+    # Test 3: Support Ticket Triage Disambiguation
+    res_triage = one_input_support.handle_one_input("Contact 9876543210 my payment was debited twice")
+    assert res_triage["intent"] == "SUPPORT_TICKET_TRIAGE"
+    assert "9876543210" not in res_triage["data"]["redacted_text"]
+    assert "[PHONE]" in res_triage["data"]["redacted_text"]
+
+    # Test 4: Autonomous Refund Agent Disambiguation
+    sc_df = pd.read_csv("data/raw/agent_scenarios.csv")
+    s1_msg = sc_df.iloc[0]["message"]
+    res_agent = one_input_support.handle_one_input(s1_msg)
+    assert res_agent["intent"] == "AUTONOMOUS_REFUND_AGENT"
+    assert res_agent["data"]["status"] == "REFUND"
+    assert res_agent["data"]["refund_amount_inr"] > 0
+    print("  -> Step 5 PASSED successfully.")
 
 def main():
     print("==================================================")
     print("STARTING FULL END-TO-END QA REGRESSION TEST SUITE")
     print("==================================================")
-    test_part_a()
-    test_part_b()
-    test_part_c()
-    test_part_d()
+    test_step_1_data_foundation()
+    test_step_2_customer_intelligence()
+    test_step_3_support_triage()
+    test_step_4_policy_refund_agent()
+    test_step_5_one_input_copilot()
     print("==================================================")
-    print("ALL QA TESTS PASSED WITH 100% SUCCESS!")
+    print("ALL 5 STEPS PASSED QA VALIDATION WITH 100% SUCCESS!")
     print("==================================================")
 
 if __name__ == "__main__":

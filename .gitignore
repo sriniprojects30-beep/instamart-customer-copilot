@@ -18,3 +18,8 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Dynamic agent runtime state snapshots
+state/run_*.json
+state/test_*.json
+state/demo_*.json
