@@ -121,7 +121,8 @@ HTML_PAGE = """<!DOCTYPE html>
   </header>
 
   <nav class="nav-tabs">
-    <button class="tab-btn active" onclick="showTab('tab-dashboard')">📊 Executive Overview</button>
+    <button class="tab-btn active" onclick="showTab('tab-one-input')">🎯 One-Input Copilot</button>
+    <button class="tab-btn" onclick="showTab('tab-dashboard')">📊 Executive Overview</button>
     <button class="tab-btn" onclick="showTab('tab-customers')">👥 Customer Intelligence</button>
     <button class="tab-btn" onclick="showTab('tab-triage')">🛡️ Support Triage & Guardrails</button>
     <button class="tab-btn" onclick="showTab('tab-rag')">📖 Policy RAG Assistant</button>
@@ -129,8 +130,39 @@ HTML_PAGE = """<!DOCTYPE html>
   </nav>
 
   <div class="container">
+    <!-- TAB 0: ONE INPUT UNIVERSAL COPILOT -->
+    <div id="tab-one-input" class="tab-content active">
+      <div class="card" style="border: 2px solid var(--primary); box-shadow: 0 4px 20px rgba(249, 115, 22, 0.15);">
+        <h2>🎯 One-Input Support Copilot (Universal Omnibox)</h2>
+        <p class="desc">Enter <strong>any input</strong> &mdash; customer ID, order refund request, policy question, or support complaint with sensitive PII. The Copilot automatically redacts PII, detects intent, queries databases, runs multi-turn agents, and routes tickets.</p>
+
+        <div class="form-group">
+          <label>Quick Pre-sets &amp; Test Queries:</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="setOneInput('C0082')">Customer 360 (C0082)</button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="setOneInput('My order ORD-100048 reached me very late. I would like a refund. Call 9876543210 or email user@test.com')">Late Refund (ORD-100048)</button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="setOneInput('Order ORD-100140 arrived far too late, please refund me.')">High-Value Escalate (ORD-100140)</button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="setOneInput('What delivery time makes a completed order eligible for a full refund?')">Policy FAQ (Late Refund Rules)</button>
+            <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="setOneInput('Someone hacked my account and made unauthorized transactions. Call 9876543210 immediately.')">Fraud Alert (Security Desk)</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Universal Input Box:</label>
+          <textarea id="one-input-text" style="min-height: 100px; font-size: 15px; line-height: 1.5;" placeholder="Enter anything: an order refund request, customer ID, policy question, or support complaint...">My order ORD-100048 reached me very late. I would like a refund. Call 9876543210 or email user@test.com</textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+          <button class="btn" style="padding: 12px 28px; font-size: 15px;" onclick="runOneInputCopilot()">⚡ Run Copilot</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('one-input-text').value=''; document.getElementById('one-input-result').style.display='none';">Clear</button>
+        </div>
+
+        <div id="one-input-result" style="margin-top: 25px; display: none;"></div>
+      </div>
+    </div>
+
     <!-- TAB 1: EXECUTIVE DASHBOARD -->
-    <div id="tab-dashboard" class="tab-content active">
+    <div id="tab-dashboard" class="tab-content">
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Completed Revenue</div>
@@ -480,6 +512,118 @@ HTML_PAGE = """<!DOCTYPE html>
           `;
         });
     }
+
+    function setOneInput(val) {
+      document.getElementById('one-input-text').value = val;
+      runOneInputCopilot();
+    }
+
+    function runOneInputCopilot() {
+      const q = document.getElementById('one-input-text').value.trim();
+      if (!q) return;
+      const resDiv = document.getElementById('one-input-result');
+      resDiv.style.display = 'block';
+      resDiv.innerHTML = '<p style="color: var(--accent); padding: 15px; font-weight: 600;">⚡ Processing with Privacy Guardrails, Semantic Search & Agent Reasoning...</p>';
+
+      fetch('/api/one_input_support', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query: q})
+      })
+      .then(r => r.json())
+      .then(res => {
+        let detailsHtml = '';
+        if (res.data) {
+          if (res.intent === 'AUTONOMOUS_REFUND_AGENT') {
+            detailsHtml = `
+              <div style="margin-top: 15px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                  <div class="kpi-card" style="padding: 12px;"><div class="kpi-label">Order ID</div><div style="font-size: 18px; font-weight: 700;">${res.data.order_id || 'N/A'}</div></div>
+                  <div class="kpi-card" style="padding: 12px;"><div class="kpi-label">Refund Status</div><div style="font-size: 18px; font-weight: 700; color: #4ade80;">${res.data.refund_status}</div></div>
+                  <div class="kpi-card" style="padding: 12px;"><div class="kpi-label">Refund Amount</div><div style="font-size: 18px; font-weight: 700; color: #fb923c;">INR ${res.data.refund_amount_inr.toFixed(2)}</div></div>
+                  <div class="kpi-card" style="padding: 12px;"><div class="kpi-label">Customer Tier</div><div style="font-size: 18px; font-weight: 700;">${res.data.customer_tier} ${res.data.is_premium ? '★ VIP' : ''}</div></div>
+                </div>
+                <h3 style="font-size: 14px; margin-bottom: 8px;">ReAct Multi-Turn Execution Steps (${(res.data.execution_steps || []).length}):</h3>
+                ${(res.data.execution_steps || []).map(st => `
+                  <div class="step-box">
+                    <div class="step-header"><span>Step ${st.step}: Tool [${st.tool_name}]</span></div>
+                    <div>Arguments: <code>${JSON.stringify(st.arguments)}</code></div>
+                    <div>Observation: <pre>${JSON.stringify(st.observation, null, 2)}</pre></div>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          } else if (res.intent === 'CUSTOMER_INTELLIGENCE') {
+            detailsHtml = `
+              <div style="margin-top: 15px; background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <h3 style="font-size: 18px;">${res.data.customer_id} &mdash; ${res.data.city}</h3>
+                  <span class="badge ${res.data.is_premium ? 'badge-premium' : 'badge-normal'}">${res.data.segment_name}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                  <div><label>Recency</label><strong>${res.data.recency_days} days</strong></div>
+                  <div><label>Frequency</label><strong>${res.data.frequency_orders} orders</strong></div>
+                  <div><label>Monetary Spend</label><strong>INR ${res.data.monetary_spend_inr.toLocaleString()}</strong></div>
+                  <div><label>Predicted Churn Risk</label><strong style="color: ${res.data.predicted_lapse_probability > 0.5 ? '#ef4444' : '#22c55e'};">${(res.data.predicted_lapse_probability * 100).toFixed(1)}%</strong></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">Age: ${res.data.age} | Gender: ${res.data.gender} | Joined: ${res.data.signup_date}</div>
+              </div>
+            `;
+          } else if (res.intent === 'POLICY_ASSISTANT_RAG') {
+            detailsHtml = `
+              <div style="margin-top: 15px;">
+                <div style="background: #0f172a; padding: 16px; border-radius: 8px; border-left: 4px solid var(--success); font-size: 15px; margin-bottom: 15px;">
+                  ${res.data.grounded_answer}
+                </div>
+                <h3 style="font-size: 14px; margin-bottom: 8px;">Grounding Policy Sources (Top 3 Chunks):</h3>
+                ${(res.data.retrieved_sources || []).map(s => `
+                  <div class="step-box">
+                    <div class="step-header"><span>${s.source}</span><span>Score: ${s.score.toFixed(4)}</span></div>
+                    <div>${s.text}</div>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          } else if (res.intent === 'SUPPORT_TICKET_TRIAGE') {
+            detailsHtml = `
+              <div style="margin-top: 15px; background: #0f172a; padding: 16px; border-radius: 8px;">
+                <p style="margin-bottom: 8px;">Triaged Category: <strong>${res.data.category}</strong></p>
+                <label>Raw Model Response:</label>
+                <pre>${res.data.raw_model_response}</pre>
+              </div>
+            `;
+          }
+        }
+
+        let piiHtml = '';
+        if (res.redaction_summary && res.redaction_summary.total_masked > 0) {
+          piiHtml = `
+            <div style="margin-top: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 12px;">
+              <div style="font-size: 12px; font-weight: 700; color: #4ade80; margin-bottom: 4px;">
+                🛡️ PRIVACY GUARDRAILS: ${res.redaction_summary.total_masked} PII items masked (0 leaks remaining)
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);">Redacted text sent to AI: <code>${res.redacted_text}</code></div>
+            </div>
+          `;
+        }
+
+        resDiv.innerHTML = `
+          <div class="card" style="border-color: var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge badge-premium">${res.intent_label}</span>
+                <span class="badge ${res.priority === 'HIGH' ? 'badge-high' : 'badge-normal'}">Priority: ${res.priority}</span>
+                <span class="badge badge-success">Queue: ${res.route}</span>
+              </div>
+              <span style="font-size: 12px; color: var(--text-muted);">Status: ${res.status}</span>
+            </div>
+            <h2 style="font-size: 18px; color: var(--text);">${res.summary}</h2>
+            ${piiHtml}
+            ${detailsHtml}
+          </div>
+        `;
+      });
+    }
   </script>
 </body>
 </html>
@@ -642,6 +786,13 @@ class CopilotServer(BaseHTTPRequestHandler):
             msg = payload.get("message", "")
             sid = payload.get("scenario_id", "Custom")
             res = part_d.run_agent(msg, sid)
+            self.send_json(res)
+            return
+
+        elif path == "/api/one_input_support":
+            import one_input_support
+            query = payload.get("query", "")
+            res = one_input_support.handle_one_input(query)
             self.send_json(res)
             return
 
